@@ -1,3 +1,6 @@
+#ifndef _client_h
+#define _client_h
+
 typedef enum requestType{
     simple,
     pipelined,
@@ -12,3 +15,5 @@ typedef struct tasks{
 }TASKS;
 
 void listenBack(int fd);
+
+#endif

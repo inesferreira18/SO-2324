@@ -1,10 +1,10 @@
 default: client orchestrator
 
 client: client.c client.h
-	gcc -c client client.c
+	gcc -o client client.c
 
 orchestrator: orchestrator.c orchestrator.h
-	gcc -c orchestrator orchestrator.c
+	gcc -o orchestrator orchestrator.c
 
-rm:
-	rm client orchestrator
+clean:
+	rm client orchestrator temp/contoserver

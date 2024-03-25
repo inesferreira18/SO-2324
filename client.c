@@ -2,26 +2,33 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <string.h>
+#include <sys/types.h>
 #include "client.h"
+
+void listenBack(int fd){
+    return;
+}
 
 int main(int argc, char **argv){
 
     //Check if arguments are correct
-    if(argc != 1 && strcmp(argv[1], "status")){
+    if(argc != 1 && strcmp(argv[1], "status") == 0){
         printf("arguments invalid");
         return -2;
     }
 
-    else if(argc != 4 || !strcmp(argv[1], "execute") || argv[3][0] != '-'){
+    else if(argc != 5 || strcmp(argv[1], "execute") != 0 || argv[3][0] != '-'){
         printf("execute arguments not valid\n");
+        //printf("argc = %d\ncommand = %s\nargv[3] = %c\n", argc, argv[1], argv[3][0]);
         return -2;
     }
 
 
 
-    char *contoserver = "tmp/contoserver";
+    char *contoserver = "temp/contoserver";
+    //mkfifo(contoserver, O_WRONLY | O_CREAT);
     int fdping = open(contoserver, O_WRONLY);
-    if(fdping == -1)
+    if(fdping < 0)
     {
         printf("communication to server failed\n");
         return -1;
@@ -34,7 +41,7 @@ int main(int argc, char **argv){
     TASKS task;
     task.fd = fd[1];
 
-    if(strcmp("status", argv[1])){
+    if(strcmp("status", argv[1]) == 0){
         task.type = status;
         task.time = -1;
     }
@@ -54,10 +61,11 @@ int main(int argc, char **argv){
                 printf("type of task (%c) unknown\n", argv[3][1]);
                 return -3;
       }
-        strcpy(&task.argument, &argv[4]);
+        strcpy((&task.argument), argv[4]);
     }
-    
+    printf("%d\n%d\n%s\n", task.fd, task.time, task.argument);
     write(fdping, &task, sizeof(TASKS));
+    close(fdping);
     listenBack(fd[0]);
 
 }
