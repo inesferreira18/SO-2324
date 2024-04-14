@@ -7,4 +7,4 @@ orchestrator: orchestrator.c orchestrator.h
 	gcc -o orchestrator orchestrator.c
 
 clean:
-	rm client orchestrator temp/contoserver
+	rm client orchestrator temp/*

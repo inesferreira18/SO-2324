@@ -1,12 +1,16 @@
 #include <unistd.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <fcntl.h>
 #include <string.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include "client.h"
 
 void listenBack(int fd){
-    return;
+    char answer[64];
+    int bytesread = read(fd, answer, 64);
+    printf("%s\n", answer);
 }
 
 int main(int argc, char **argv){
@@ -33,13 +37,9 @@ int main(int argc, char **argv){
         printf("communication to server failed\n");
         return -1;
     }
-
-    int fd[2];
-    if(pipe(fd) == -1)
-        return -1;
     
     TASKS task;
-    task.fd = fd[1];
+    task.fd = getpid();
 
     if(strcmp("status", argv[1]) == 0){
         task.type = status;
@@ -64,8 +64,19 @@ int main(int argc, char **argv){
         strcpy((&task.argument), argv[4]);
     }
     printf("%d\n%d\n%s\n", task.fd, task.time, task.argument);
+
+    char answerpipe[64];
+    sprintf(answerpipe, "temp/%d\0", getpid());
+    mkfifo(answerpipe, S_IRUSR | S_IWGRP | S_IWOTH);
+    printf("%s\n", answerpipe);
+    int ap = open(answerpipe, O_RDONLY);
+
+
+
+
+
     write(fdping, &task, sizeof(TASKS));
     close(fdping);
-    listenBack(fd[0]);
+    listenBack(ap);
 
 }
