@@ -35,8 +35,37 @@ int main(int argc, char **argv){
            //printf("%d\n", bytesread);
            printf("pipe to answer: %d\ntime: %d\ntask: %s\n", newtask.fd, newtask.time, newtask.argument);
            writeback(newtask.fd);
-    
+
+           printf("fim do codigo do Longo :)\n");
+            int count = 1;
+            for(int j = 0; j<sizeof(newtask.argument);j++){
+                if(newtask.argument[j]==' '){
+                    count++;
+                    printf("%d",count);
+                }
+            }
+            char** args = malloc(count+1);
+            char* argumento;
+            argumento = strtok(newtask.argument," ");
+            int i = 0;
+            while (argumento!=NULL)
+            {
+                args[i] = malloc(sizeof(*argumento));
+                printf("%s",*argumento);
+                strcpy(args[i],*argumento);
+                argumento = strtok(NULL," ");
+                i++;
+            }
+
+            char filelog[64];
+            sprintf(filelog, "logs/%d\0",newtask.fd);
+            int logfd = open(filelog, O_WRONLY | O_CREAT);
+            //char* file = strcat("logs/", itoa(newtask.fd));
+            
+            //int execvp(filelog,args);
     
         }
+
+        
     }
 }

@@ -1,9 +1,9 @@
 default: client orchestrator
 
-client: client.c client.h
+client: bin/client.c bin/client.h
 	gcc -o client bin/client.c
 
-orchestrator: orchestrator.c orchestrator.h
+orchestrator: bin/orchestrator.c bin/orchestrator.h
 	gcc -o orchestrator bin/orchestrator.c
 
 clean:
