@@ -11,23 +11,26 @@ void writeback(int pid){
     write(pipe, "answer here", sizeof("answer here")+1);
     close(pipe);
 }
-
-int main(int argc, char **argv){
-
-    umask(0);
-
-    char *fifopath = "temp/contoserver";
-    if(access(fifopath, F_OK) != 0){            //checks if pipe exists
-        if(mkfifo(fifopath, 0666) != 0)
+int createFifo(char *path){
+    if(access(path, F_OK) != 0){            //checks if pipe exists
+        if(mkfifo(path, 0666) != 0)
         {
             printf("fifo not opened correctly\n");
             return -1;
         }
     }
-    printf("im here\n");
-    int fifo = open(fifopath, O_RDONLY | O_ASYNC);
-    printf("im here now tho\n");
+    return(open(path, O_RDONLY | O_ASYNC));
+}
+int main(int argc, char **argv){
+
+    umask(0);
+
+    char *fifopath = "temp/contoserver";
+    
+    int fifo = createFifo(fifopath);
+    
     TASKS newtask;
+
     int bytesread;
     while(1)
     {   

@@ -65,7 +65,7 @@ int main(int argc, char **argv){
       }
         strcpy((&task.argument), argv[4]);
     }
-    printf("%d\n%d\n%s\n", task.fd, task.time, task.argument);
+    //printf("%d\n%d\n%s\n", task.fd, task.time, task.argument);
 
     char answerpipe[64];
     sprintf(answerpipe, "temp/%d\0", getpid());
@@ -76,9 +76,8 @@ int main(int argc, char **argv){
 
 
     write(fdping, &task, sizeof(TASKS));
-    printf("%s\n", answerpipe);
     close(fdping);
     int ap = open(answerpipe, O_RDONLY);
     listenBack(ap);
-
+    return 0;
 }
