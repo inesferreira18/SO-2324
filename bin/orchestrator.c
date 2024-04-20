@@ -1,42 +1,56 @@
 #include "orchestrator.h"
+#include "taskqueue.h"
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
 
-void writeback(int pid){
+void writeback(int pid){ //pipe entre servidor -> cliente
     char path[64];
     sprintf(path, "temp/%d\0", pid);
     int pipe = open(path, O_WRONLY | O_CREAT | O_ASYNC);
-    write(pipe, "answer here", sizeof("answer here")+1);
+    write(pipe, "answer here", sizeof("answer here")+1); 
     close(pipe);
 }
-
-int main(int argc, char **argv){
-
-    umask(0);
-
-    char *fifopath = "temp/contoserver";
-    if(access(fifopath, F_OK) != 0){            //checks if pipe exists
-        if(mkfifo(fifopath, 0666) != 0)
+int createFifo(char *path){
+    if(access(path, F_OK) != 0){            //checks if pipe exists
+        if(mkfifo(path, 0666) != 0)
         {
             printf("fifo not opened correctly\n");
             return -1;
         }
     }
-    printf("im here\n");
-    int fifo = open(fifopath, O_RDONLY | O_ASYNC);
-    printf("im here now tho\n");
-    TASKS newtask;
-    int bytesread;
-    while(1)
-    {   
-        if(bytesread = read(fifo, &newtask, sizeof(TASKS)) != 0){
-           //printf("%d\n", bytesread);
-           printf("pipe to answer: %d\ntime: %d\ntask: %s\n", newtask.fd, newtask.time, newtask.argument);
-           writeback(newtask.fd);
+    return(open(path, O_RDONLY | O_ASYNC));
+}
+int main(int argc, char **argv){
+    QUEUE queue;
+    initQueue(&queue);
 
-           printf("fim do codigo do Longo :)\n");
+    umask(0);
+
+    char *fifopath = "temp/contoserver"; //pipe entre cliente -> servidor
+    
+    int fifo = createFifo(fifopath);
+    
+    TASKS newtask;
+
+    int bytesread;
+    while(1){   
+        if(bytesread = read(fifo, &newtask, sizeof(TASKS)) != 0){
+            //printf("%d\n", bytesread);
+            printf("pipe to answer: %d\ntime: %d\ntask: %s\n", newtask.fd, newtask.time, newtask.argument);
+            writeback(newtask.fd);
+
+            putInQueue(&queue, newtask); //adiciona a nova tarefa à fila
+
+            if(!isQueueEmpty(&queue)){ // se houver uma próxima tarefa na fila
+                TASKS newTask = queue.first->task;
+
+                //mandar para o ficheiro "em execução" e tirar do ficheiro "em espera"
+
+                //faltam cenas aqui ------------------------------------------------------------------------------------------
+            }
+
             int count = 1;
             for(int j = 0; j<sizeof(newtask.argument);j++){
                 if(newtask.argument[j]==' '){
@@ -59,7 +73,7 @@ int main(int argc, char **argv){
 
             char filelog[64];
             sprintf(filelog, "logs/%d\0",newtask.fd);
-            int logfd = open(filelog, O_WRONLY | O_CREAT);
+            int logfd = open(filelog, O_WRONLY | O_CREAT); //criação do ficheiro que armazena todas as tarefas
             //char* file = strcat("logs/", itoa(newtask.fd));
             
             //int execvp(filelog,args);
