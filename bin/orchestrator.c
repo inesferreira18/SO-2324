@@ -7,14 +7,14 @@
 
 void writeback(int pid){ //pipe entre servidor -> cliente
     char path[64];
-    sprintf(path, "temp/%d\0", pid);
-    int pipe = open(path, O_WRONLY | O_CREAT | O_ASYNC);
+    sprintf(path, "temp/%d\0", pid);    	        //path é temp/[pid do cliente]
+    int pipe = open(path, O_WRONLY | O_CREAT | O_ASYNC);  //o pipe é criado pelo cliente então pode-se só abrir
     write(pipe, "answer here", sizeof("answer here")+1); 
     close(pipe);
 }
 int createFifo(char *path){
     if(access(path, F_OK) != 0){            //checks if pipe exists
-        if(mkfifo(path, 0666) != 0)
+        if(mkfifo(path, 0666) != 0)         //creates pipe if it doesnt
         {
             printf("fifo not opened correctly\n");
             return -1;
@@ -23,7 +23,7 @@ int createFifo(char *path){
     return(open(path, O_RDONLY | O_ASYNC));
 }
 int main(int argc, char **argv){
-    QUEUE queue;
+    QUEUE queue;        
     initQueue(&queue);
 
     umask(0);
@@ -32,14 +32,14 @@ int main(int argc, char **argv){
     
     int fifo = createFifo(fifopath);
     
-    TASKS newtask;
+    TASKS newtask;                      //Task tem fd, time, argument e type
 
     int bytesread;
     while(1){   
-        if(bytesread = read(fifo, &newtask, sizeof(TASKS)) != 0){
-            //printf("%d\n", bytesread);
+        if(bytesread = read(fifo, &newtask, sizeof(TASKS)) != 0){       //certificar que ele lê alguma coisa (para os primeiros reads onde não há ninguem a escrever e devolve -1)
+            //printf("%d\n", bytesread);                                //otherwise ele em teoria congela no read
             printf("pipe to answer: %d\ntime: %d\ntask: %s\n", newtask.fd, newtask.time, newtask.argument);
-            writeback(newtask.fd);
+            writeback(newtask.fd);                                      //função básica para responder ao cliente depois de receber task
 
             putInQueue(&queue, newtask); //adiciona a nova tarefa à fila
 
