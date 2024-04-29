@@ -72,18 +72,13 @@ char** storeTitleAndArguments (int count, char* task){
 }
 
 void parse(TASKS newtask){
-    int countFunc = countfunctions(newtask); 
-    char** functions = storeFuctions(countFunc,newtask); 
-    printf("je suis here%d\n", countFunc);
-    for (int j=0;j<countFunc;j++){
-        int count = contTitleEArgument(functions[j]);
-        char **args = storeTitleAndArguments(count,functions[j]);
-
+    
+    int count = contTitleEArgument(newtask.argument);
+    char **args = storeTitleAndArguments(count,newtask.argument);
         //char filelog[64];
         //sprintf(filelog, "logs/%d\0",newtask.fd);
         //int logfd = open(filelog, O_WRONLY | O_CREAT);
         //char* file = strcat("logs/", itoa(newtask.fd));
         //FALTA DUPS
         //int execvp(filelog,args);
-    }
 }
