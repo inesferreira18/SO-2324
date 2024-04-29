@@ -98,7 +98,7 @@ int main(int argc, char **argv){
 
             putInQueue(&queue, newtask); //adiciona a nova tarefa à fila
 
-            if (&queue->last->next == NULL){ //quando a queue estiver cheia
+            if (queue.last->next == NULL){ //quando a queue estiver cheia
                 allTasksInQueue = 1;
             }
 
