@@ -88,6 +88,8 @@ int main(int argc, char **argv){
     TASKS newtask;                      //Task tem fd, time, argument e type
 
     int bytesread;
+    int allTasksInQueue = 0; // flag para saber se já estão todas as tasks na queue, inicialmente não tem nenhuma 
+
     while(1){   
         if(bytesread = read(fifo, &newtask, sizeof(TASKS)) != 0){       //certificar que ele lê alguma coisa (para os primeiros reads onde não há ninguem a escrever e devolve -1)
             //printf("%d\n", bytesread);                                //otherwise ele em teoria congela no read
@@ -96,12 +98,8 @@ int main(int argc, char **argv){
 
             putInQueue(&queue, newtask); //adiciona a nova tarefa à fila
 
-            if(!isQueueEmpty(&queue)){ // se houver uma próxima tarefa na fila
-                TASKS newTask = queue.first->task;
-
-                //mandar para o ficheiro "em execução" e tirar do ficheiro "em espera"
-
-                //faltam cenas aqui ------------------------------------------------------------------------------------------
+            if (&queue->last == NULL){ //quando a queue estiver cheia
+                allTasksInQueue = 1;
             }
 
             int count = 1;
@@ -131,8 +129,12 @@ int main(int argc, char **argv){
             
             //int execvp(filelog,args);
     
+        } else if (!isQueueEmpty(&queue)){ // se houver uma próxima tarefa na fila
+            TASKS newTask = queue.first->task;
+
+            // mandar para o ficheiro "em execução" e tirar do ficheiro "em espera"
+
+            // faltam cenas aqui ------------------------------------------------------------------------------------------
         }
-        
-        
     }
 }
