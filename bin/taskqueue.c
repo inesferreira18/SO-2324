@@ -58,4 +58,46 @@ void clearQueue (QUEUE* queue){
     while(!isQueueEmpty(queue)){
         takeFromQueue(queue);
     }
+    TASKS* pop2(QUEUE* queue) {
+        if (isQueueEmpty(queue)) {
+            //a fila está vazia, não há nada para tirar
+            return NULL;
+        }
+    
+        // Find the node with the least time
+        NODE* auxNode = queue->first;
+        NODE* lessTimeNode = queue->first;
+        TASKS* lessTimeTask = &(auxNode->task);
+    
+        while (auxNode != NULL) {
+            if (auxNode->task.time < lessTimeNode->task.time) {
+                lessTimeNode = auxNode;
+                lessTimeTask = &(auxNode->task);
+            }
+            auxNode = auxNode->next;
+        }
+    
+        // If the node to be removed is the first node
+        if (lessTimeNode == queue->first) {
+            queue->first = queue->first->next;
+        } else {
+            // Find the node before the one to be removed
+            auxNode = queue->first;
+            while (auxNode->next != lessTimeNode) {
+                auxNode = auxNode->next;
+            }
+            // Adjust pointers to bypass the node to be removed
+            auxNode->next = lessTimeNode->next;
+        }
+    
+        // If the node to be removed is also the last node
+        if (lessTimeNode == queue->last) {
+            queue->last = auxNode; // Update the last pointer
+        }
+    
+        // Free the memory occupied by the node
+        free(lessTimeNode);
+    
+        return lessTimeTask;
+    }
 }
