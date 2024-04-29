@@ -75,6 +75,7 @@ void parse(TASKS newtask){
     
     int count = contTitleEArgument(newtask.argument);
     char **args = storeTitleAndArguments(count,newtask.argument);
+    return args;
         //char filelog[64];
         //sprintf(filelog, "logs/%d\0",newtask.fd);
         //int logfd = open(filelog, O_WRONLY | O_CREAT);
