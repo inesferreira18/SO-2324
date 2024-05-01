@@ -46,7 +46,31 @@ void execute_task(char *arg[], char *output_folder, int id){
     close(output);
     dup2(saved_stdout, 1);                      //restaurar standard output (fanado do stack overflow)
     close(saved_stdout);
-    _exit(0);
+}
+
+void execute_pipeline(char** arg, char* output_folder, int id){
+    char end[100];
+    int temp, start = 0;
+
+    sprintf(end, "%s/%d", *output_folder, id);
+    clock_t endtime, starttime = clock();
+    for(int i = 0; arg[i] != NULL; i++){
+        if(strcmp(arg[i], "|") == 0){
+            temp = arg[i];
+            arg[i] = NULL;
+            execute_task(arg[start], output_folder, id);
+            arg[i] = temp;
+            start = i+1;
+
+        }
+    }
+    execute_task(arg[start], output_folder, id);
+    endtime = clock() - starttime;
+    double time = (endtime*1000) / CLOCKS_PER_SEC;
+    int file = open(end, O_WRONLY);
+    sprintf(end, "%d, total time(ms): %d", id, time);
+    write(file, end, strlen(end));
+    close(file);
 }
 
 

@@ -16,4 +16,8 @@ typedef struct tasks{
     char argument[300];
 }TASKS;
 
+
+
+
+void execute_pipeline(char **arg, char* output_folder, int id);
 void doasIsay(int childno, int notifyServ, int getTask);
