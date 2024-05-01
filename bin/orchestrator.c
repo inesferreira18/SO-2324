@@ -73,9 +73,43 @@ void answer_status(int answer_pipe, QUEUE queue, char *end_feito){
     close(saved_output);
 }
 
-
+void doasIsay(int childno, int notifyServ, int getTask){
+    while(1){
+        TASKS task;
+        write(notifyServ, childno, sizeof(int));
+        read(getTask, &task, sizeof(TASKS));
+        //dothething()
+    }
+}
 
 int main(int argc, char **argv){
+    
+    //valores de inicialização
+    char *logpath = argv[1];
+    int maxtask = atoi(argv[2]);
+    SCHEDPOL policy;
+    if(strcmp(argv[3], "SJF") == 0)
+        policy = SJF;
+    else if(strcmp(argv[3], "FCFS") == 0)
+        policy = FCFS;
+    else{
+        perror("invalid policy\n");
+        return -1;
+    }
+    
+    //filhos escravos que fazem os pedidos
+    //pipe[0] é pipe dos filhos a dizer quando estão disponiveis
+    //cada outro pipe é do server a dizer ao filho respetivo que task fazer 
+    int pipes[maxtask+1][2];
+    mkpipe(pipes[0]);
+    int childNo;
+    for(childNo = 1; childNo <= maxtask; childNo++){
+        pipe(pipes[childNo]);
+        int pid = fork();
+        if(pid == 0)
+            doasIsay(childNo, pipes[0][1], pipes[childNo][0]);
+    }
+    
     QUEUE queue;        
     initQueue(&queue);
 
@@ -133,7 +167,8 @@ int main(int argc, char **argv){
             TASKS newTask = queue.first->task;
 
             // mandar para o ficheiro "em execução" e tirar do ficheiro "em espera"
-
+            read(pipes[0][0], &childNo, sizeof(int));
+            write(pipes[childNo][1], &newtask, sizeof(TASKS));
             // faltam cenas aqui ------------------------------------------------------------------------------------------
         }
     }
