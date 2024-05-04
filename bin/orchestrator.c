@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include <time.h>
+#include <parse.h>
 
 void writeback(int pid){ //pipe entre servidor -> cliente
     char path[64];
@@ -26,7 +27,7 @@ int createFifo(char *path){
 
 
 //executa task (passar task.argument em lista de strings, id é o identificador da task)
-//A SER USADO APENAS POR UM PROCESSO FILHO DEDICADO A ESTA TASK (pq paralelismo)
+//não mata o processo
 void execute_task(char *arg[], char *output_folder, int id){
     
     char end[100];                               //ficheiro destino
@@ -97,12 +98,39 @@ void answer_status(int answer_pipe, QUEUE queue, char *end_feito){
     close(saved_output);
 }
 
-void doasIsay(int childno, int notifyServ, int getTask){
+void doasIsay(int childno, char* logpath,int notifyServ, int getTask){
     while(1){
         TASKS task;
         write(notifyServ, childno, sizeof(int));
         read(getTask, &task, sizeof(TASKS));
-        //dothething()
+        
+        switch(task.type){
+            case simple:
+                char** args = parse(task);
+                execute_task(args, logpath, task.fd);
+                //free_function(args);
+                break;
+            
+            case pipelined:
+                char** args = parse(task);
+                execute_pipeline(args, logpath, task.fd);
+                //free_function(args);
+                break;
+
+            case status:
+                QUEUE queue;
+                read(getTask, &queue, sizeof(QUEUE));
+                char* path = malloc(64);
+                sprintf(path, "temp/%d\0", task.fd);    	        //path é temp/[pid do cliente]
+                int pipe = open(path, O_WRONLY | O_CREAT | O_ASYNC);  //o pipe é criado pelo cliente então pode-se só abrir
+                answer_status(pipe, queue, logpath);
+                free(path);
+                break;
+            
+            default:
+                perror("fecked task\n");
+                return -1;
+        }
     }
 }
 
@@ -131,7 +159,7 @@ int main(int argc, char **argv){
         pipe(pipes[childNo]);
         int pid = fork();
         if(pid == 0)
-            doasIsay(childNo, pipes[0][1], pipes[childNo][0]);
+            doasIsay(childNo, logpath, pipes[0][1], pipes[childNo][0]);
     }
     
     QUEUE queue;        

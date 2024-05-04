@@ -21,5 +21,5 @@ int contTitleEArgument(char* task);
 char** storeFuctions (int count, TASKS newtask);
 char** storeTitleAndArguments (int count, char* task);
 char** storeTitleAndArguments (int count, char* task);
-void parse(TASKS newtask);
+char** parse(TASKS newtask);
 

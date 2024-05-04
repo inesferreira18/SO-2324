@@ -20,4 +20,4 @@ typedef struct tasks{
 
 
 void execute_pipeline(char **arg, char* output_folder, int id);
-void doasIsay(int childno, int notifyServ, int getTask);
+void doasIsay(int childno, char* logpath, int notifyServ, int getTask);
