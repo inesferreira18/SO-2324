@@ -1,20 +1,3 @@
-typedef enum requestType{
-    simple,
-    pipelined,
-    status
-}REQTYPE;
-
-typedef enum queuePolicy{
-    SJF,
-    FCFS
-}SCHEDPOL;
-
-typedef struct tasks{
-    int fd;
-    int time;
-    REQTYPE type;
-    char argument[300];
-}TASKS;
 
 
 

@@ -81,7 +81,7 @@ void free_function(char** argumentos){
     free(argumentos);
 }
 
-void parse(TASKS newtask){
+char** parse(TASKS newtask){
     
     int count = contTitleEArgument(newtask.argument);
     char **args = storeTitleAndArguments(count,newtask.argument);

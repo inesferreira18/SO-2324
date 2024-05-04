@@ -1,5 +1,6 @@
 #include "taskqueue.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 void initQueue(QUEUE* queue){
     queue->first = NULL;
@@ -10,7 +11,7 @@ int isQueueEmpty(QUEUE* queue){
     return (queue->first == NULL && queue->last == NULL);
 }
 
-void putInQueue(QUEUE* queue, TASKS newTask){
+void putInQueue(QUEUE* queue, TASKS* newTask){
     NODE* newNode = malloc(sizeof(struct node));
 
     if (newNode == NULL){
@@ -19,7 +20,8 @@ void putInQueue(QUEUE* queue, TASKS newTask){
         return;
     }
 
-    newNode->task = newTask;
+    //newNode->task = newTask;
+    memcpy(&(newNode->task), newTask, sizeof(*newTask));
     newNode->next = NULL; 
 
     if (isQueueEmpty(queue)){

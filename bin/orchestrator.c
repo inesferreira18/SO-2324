@@ -1,11 +1,10 @@
-#include "orchestrator.h"
-#include "taskqueue.h"
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
 #include <time.h>
-#include <parse.h>
+#include "parse.h"
+#include <stdlib.h>
 
 void writeback(int pid){ //pipe entre servidor -> cliente
     char path[64];
@@ -41,9 +40,11 @@ void execute_task(char *arg[], char *output_folder, int id){
     endtime = clock() - starttime;              //endtime guardado
     double time = (endtime * 1000) / CLOCKS_PER_SEC;        //time é os clock cycles a dividir pela frequencia do relogio (var global CLOCKS_PER_SEC do time.h)
     char answer[100];
-    sprtinf(answer, "%d, '%s' time: %d", id, arg, time);
+    sprintf(answer, "%d, '%s' time: %d", id, arg, time);
     write(output, answer, strlen(answer));
-    write(output, itoa(time), sizeof(itoa(time)));
+
+    sprintf(answer, "%d", time);
+    write(output, answer, strlen(answer));
     close(output);
     dup2(saved_stdout, 1);                      //restaurar standard output (fanado do stack overflow)
     close(saved_stdout);
@@ -103,16 +104,16 @@ void doasIsay(int childno, char* logpath,int notifyServ, int getTask){
         TASKS task;
         write(notifyServ, childno, sizeof(int));
         read(getTask, &task, sizeof(TASKS));
-        
+        char **args;
         switch(task.type){
             case simple:
-                char** args = parse(task);
+                args = parse(task);
                 execute_task(args, logpath, task.fd);
                 free_function(args);
                 break;
             
             case pipelined:
-                char** args = parse(task);
+                args = parse(task);
                 execute_pipeline(args, logpath, task.fd);
                 free_function(args);
                 break;
@@ -129,7 +130,7 @@ void doasIsay(int childno, char* logpath,int notifyServ, int getTask){
             
             default:
                 perror("fecked task\n");
-                return -1;
+                break;
         }
     }
 }
@@ -153,7 +154,7 @@ int main(int argc, char **argv){
     //pipe[0] é pipe dos filhos a dizer quando estão disponiveis
     //cada outro pipe é do server a dizer ao filho respetivo que task fazer 
     int pipes[maxtask+1][2];
-    mkpipe(pipes[0]);
+    pipe(pipes[0]);
     int childNo;
     for(childNo = 1; childNo <= maxtask; childNo++){
         pipe(pipes[childNo]);
@@ -182,7 +183,7 @@ int main(int argc, char **argv){
             printf("pipe to answer: %d\ntime: %d\ntask: %s\n", newtask.fd, newtask.time, newtask.argument);
             writeback(newtask.fd);                                      //função básica para responder ao cliente depois de receber task
 
-            putInQueue(&queue, newtask); //adiciona a nova tarefa à fila
+            putInQueue(&queue, &newtask); //adiciona a nova tarefa à fila
 
             if (queue.last->next == NULL){ //quando a queue estiver cheia
                 allTasksInQueue = 1;
@@ -216,7 +217,12 @@ int main(int argc, char **argv){
             //int execvp(filelog,args);
     
         } else if (!isQueueEmpty(&queue)){ // se houver uma próxima tarefa na fila
-            TASKS newTask = queue.first->task;
+            TASKS newTask;
+            newTask.fd = queue.first->task.fd;
+            newTask.time = queue.first->task.time;
+            newTask.type = queue.first->task.type;
+            strcpy(newTask.argument, queue.first->task.argument);
+
 
             // mandar para o ficheiro "em execução" e tirar do ficheiro "em espera"
             read(pipes[0][0], &childNo, sizeof(int));
