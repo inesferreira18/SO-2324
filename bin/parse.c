@@ -71,7 +71,17 @@ char** storeTitleAndArguments (int count, char* task){
     return args;
 }
 
-char** parse(TASKS newtask){
+void free_function(char** argumentos){
+    int i=0;
+    while(argumentos[i]!=NULL){
+        free(argumentos[i]);
+        i++;
+    }
+    free(argumentos[i]);
+    free(argumentos);
+}
+
+void parse(TASKS newtask){
     
     int count = contTitleEArgument(newtask.argument);
     char **args = storeTitleAndArguments(count,newtask.argument);

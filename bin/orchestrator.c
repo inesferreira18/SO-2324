@@ -108,13 +108,13 @@ void doasIsay(int childno, char* logpath,int notifyServ, int getTask){
             case simple:
                 char** args = parse(task);
                 execute_task(args, logpath, task.fd);
-                //free_function(args);
+                free_function(args);
                 break;
             
             case pipelined:
                 char** args = parse(task);
                 execute_pipeline(args, logpath, task.fd);
-                //free_function(args);
+                free_function(args);
                 break;
 
             case status:
