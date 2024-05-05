@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include "client.h"
+#include "parse.h"
 
 void listenBack(int fd){            //função básica para o cliente ficar a ouvir a resposta do servidor
     char answer[64];
@@ -63,7 +64,7 @@ int main(int argc, char **argv){
                 printf("type of task (%c) unknown\n", argv[3][1]);
                 return -3;
       }
-        strcpy((&task.argument), argv[4]);          //o argumento tem de ser parsed no servidor
+        strcpy(task.argument, argv[4]);          //o argumento tem de ser parsed no servidor
     }
     //printf("%d\n%d\n%s\n", task.fd, task.time, task.argument);
 

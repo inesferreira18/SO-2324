@@ -3,6 +3,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
+#include <stdlib.h>
+#include <string.h>
 
 int countfunctions(TASKS newtask){
     int count = 1;
@@ -59,15 +61,9 @@ char** storeTitleAndArguments (int count, char* task){
         args[i] = malloc(strlen(argumento));
         strcpy(args[i],argumento);
         argumento = strtok(NULL," ");
-        printf("%s",args[i]);
-        getchar();
-        printf("\n");
         i++;
     }
     args[i] = NULL;
-    printf("%s",args[i]);
-    getchar();
-    printf("\n");
     return args;
 }
 

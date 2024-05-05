@@ -1,6 +1,7 @@
 #include "taskqueue.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 void initQueue(QUEUE* queue){
     queue->first = NULL;
