@@ -5,6 +5,7 @@
 #include <time.h>
 #include "parse.h"
 #include <stdlib.h>
+#include <math.h>
 
 void writeback(int pid){ //pipe entre servidor -> cliente
     char path[64];
@@ -54,29 +55,51 @@ void execute_task(char *arg[], char *output_folder, int id){
 }
 
 void execute_pipeline(char** arg, char* output_folder, int id){
-    char end[100];
-    int temp, start = 0;
-
-    sprintf(end, "%s/%d", *output_folder, id);
+    char* pipefile[50], *pipethingy;
+    sprintf(pipefile, "pipes/%d", id);
     struct timespec starttime, endtime;
     clock_gettime(CLOCK_REALTIME, &starttime);
-    for(int i = 0; arg[i] != NULL; i++){
-        if(strcmp(arg[i], "|") == 0){
-            temp = arg[i];
-            arg[i] = NULL;
-            execute_task(&(arg[start]), output_folder, id);
-            arg[i] = temp;
-            start = i+1;
+    int sectionstart = 0, walker = 0, pipefd = open(pipefile, O_CREAT | O_RDWR), saved_stdout = dup(1), temp;
+    while(arg[walker] != NULL){
+        if(strcmp(arg[walker], "|") == 0){
+            dup2(pipefd, 1);
+            temp = arg[walker];
+            arg[walker] = NULL;
+            if(fork() == 0)
+            {
+                if(sectionstart = 0)
+                    execvp(arg[sectionstart], &arg[sectionstart]);
 
+                else{
+                    execvp(arg[sectionstart+1], &arg[sectionstart]);
+                }
+
+            }
+
+            wait(NULL);
+            *pipethingy = malloc(lseek(pipefd, 0, SEEK_END));
+            lseek(pipefd, 0, SEEK_SET);
+            read(pipefd, pipethingy, strlen(pipethingy));
+            arg[walker] = pipethingy;
+            sectionstart = walker;
         }
+
+
+        walker++;
     }
-    execute_task(arg[start], output_folder, id);
+    int output = open(pipefile, O_CREAT | O_WRONLY);
+    dup2(output, pipefd);
+    execvp(arg[sectionstart+1], &arg[sectionstart]);
     clock_gettime(CLOCK_REALTIME, &endtime);
     double delta = (endtime.tv_sec - starttime.tv_sec) + (endtime.tv_nsec - starttime.tv_nsec) / 1e9;
-    int file = open(end, O_WRONLY);
-    sprintf(end, "%d, total time: %d", id, delta);
-    write(file, end, strlen(end));
-    close(file);
+    char answer[100];
+    sprintf(answer, "%d time: %.4f\n", id, delta);
+    write(output, answer, strlen(answer));
+
+    close(output);
+    close(pipefd);
+    dup2(saved_stdout, 1);                      //restaurar standard output (fanado do stack overflow)
+    close(saved_stdout);
 }
 
 
