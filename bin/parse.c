@@ -52,7 +52,8 @@ char** storeFuctions (int count, TASKS newtask){
 
 char** storeTitleAndArguments (int count, char* task){
     //acrescentar 1 ao count por causa do NULL no final
-    char** args = malloc((count+1) * sizeof(int));
+    char** args = malloc((count+1) * sizeof(char*));
+    //char* args[count+1];
     char* argumento;
     argumento = strtok(task," ");
     int i = 0;
@@ -80,6 +81,7 @@ void free_function(char** argumentos){
 char** parse(TASKS newtask){
     
     int count = contTitleEArgument(newtask.argument);
+    printf("count: %d\n", count);
     char **args = storeTitleAndArguments(count,newtask.argument);
     return args;
         //char filelog[64];

@@ -6,13 +6,15 @@
 #include "parse.h"
 #include <stdlib.h>
 #include <math.h>
+#include <dirent.h>
 
 void writeback(int pid){ //pipe entre servidor -> cliente
     char path[64];
     sprintf(path, "temp/%d\0", pid);    	        //path é temp/[pid do cliente]
-    int pipe = open(path, O_WRONLY | O_CREAT | O_ASYNC);  //o pipe é criado pelo cliente então pode-se só abrir
-    write(pipe, "answer here\n", sizeof("answer here")+1); 
-    close(pipe);
+    int pipe = open(path, O_WRONLY | O_ASYNC);  //o pipe é criado pelo cliente então pode-se só abrir
+    char *answer = malloc(64);
+    strcpy(answer, "answer here\n");
+    write(pipe, answer, 12); 
 }
 int createFifo(char *path){
     if(access(path, F_OK) != 0){            //checks if pipe exists
@@ -29,9 +31,12 @@ int createFifo(char *path){
 //executa task (passar task.argument em lista de strings, id é o identificador da task)
 //não mata o processo
 void execute_task(char *arg[], char *output_folder, int id){
+    for(int i = 0; arg[i] != NULL; i++){
+        printf("%s\n", arg[i]);
+    }
     char end[100];                               //ficheiro destino
     sprintf(end, "%s/%d", output_folder, id);
-    creat(end, 0640);
+    creat(end, 0666);
     int output = open(end, O_CREAT | O_WRONLY); //ficheiro destino aberto
     int saved_stdout = dup(1);
     dup2(output, 1);                            //execvp agora escreve para o ficheiro em vez de escrever para STD output
@@ -46,7 +51,7 @@ void execute_task(char *arg[], char *output_folder, int id){
     clock_gettime(CLOCK_REALTIME, &endtime);
     double delta = (endtime.tv_sec - starttime.tv_sec) + (endtime.tv_nsec - starttime.tv_nsec) / 1e9;
     char answer[100];
-    sprintf(answer, "%d time: %.4f\n", id, delta);
+    sprintf(answer, "\n%d time: %.4f\n", id, delta);
     write(output, answer, strlen(answer));
 
     close(output);
@@ -54,59 +59,90 @@ void execute_task(char *arg[], char *output_folder, int id){
     close(saved_stdout);
 }
 
-void execute_pipeline(char** arg, char* output_folder, int id){
-    char* pipefile[50], *pipethingy;
-    sprintf(pipefile, "pipes/%d", id);
+void execute_singular(char *arg[], char *output_folder, int id)
+{
+    char end[100];                               //ficheiro destino
+    sprintf(end, "%s/%d", output_folder, id);
+    creat(end, 0640);
+    int output = open(end, O_CREAT | O_WRONLY); //ficheiro destino aberto
+    int saved_stdout = dup(1);
+    dup2(output, 1);                            //execvp agora escreve para o ficheiro em vez de escrever para STD output
+    int pid = fork();
+    if(pid == 0){  
+        execvp(arg[0], arg);                        //executado
+        _exit(1);
+    }
+    wait(NULL);
+    close(output);
+    dup2(saved_stdout, 1);                      //restaurar standard output (fanado do stack overflow)
+    close(saved_stdout);
+}
+
+void execute_pipeline(char* arg[], char* output_folder, int id){
+
+    char outputfile[50], tempfile[50], *tempstring, *tempstring2;
+    sprintf(outputfile, "%s/%d", output_folder, id);
+    sprintf(tempfile, "pipes/%d", id);
+    int walker = 0, sectionstart = 0;
     struct timespec starttime, endtime;
     clock_gettime(CLOCK_REALTIME, &starttime);
-    int sectionstart = 0, walker = 0, pipefd = open(pipefile, O_CREAT | O_RDWR), saved_stdout = dup(1), temp;
-    while(arg[walker] != NULL){
+    for(walker = 0; arg[walker] != NULL; walker++){
+;
         if(strcmp(arg[walker], "|") == 0){
-            dup2(pipefd, 1);
-            temp = arg[walker];
-            arg[walker] = NULL;
-            if(fork() == 0)
-            {
-                if(sectionstart = 0)
-                    execvp(arg[sectionstart], &arg[sectionstart]);
 
-                else{
-                    execvp(arg[sectionstart+1], &arg[sectionstart]);
-                }
+            if(sectionstart == 0){    
+             
+                tempstring = arg[walker];
+                arg[walker] = NULL;
+                execute_singular(&arg[sectionstart], "pipes", id);
+                arg[walker] = tempstring;
 
+                sectionstart = walker+1;
             }
 
-            wait(NULL);
-            *pipethingy = malloc(lseek(pipefd, 0, SEEK_END));
-            lseek(pipefd, 0, SEEK_SET);
-            read(pipefd, pipethingy, strlen(pipethingy));
-            arg[walker] = pipethingy;
-            sectionstart = walker;
+            else{
+                tempstring = arg[walker];
+                tempstring2 = arg[walker+1];
+                arg[walker] = tempfile;
+                arg[walker+1] = NULL;
+                execute_singular(&arg[sectionstart], "pipes", id);
+                arg[walker] = tempstring;
+                arg[walker+1] = tempstring2;
+                sectionstart = walker+1;
+            }
+
         }
-
-
-        walker++;
     }
-    int output = open(pipefile, O_CREAT | O_WRONLY);
-    dup2(output, pipefd);
-    execvp(arg[sectionstart+1], &arg[sectionstart]);
+    arg = realloc(arg, (walker+1) * (sizeof(char*)));
+    arg[walker] = tempfile;
+    arg[walker+1] = NULL;
+    if(fork()==0)
+        execute_singular(&arg[sectionstart], output_folder, id); //só para forçar a não encavalitar o tempo com o fim
+    //if(fork() == 0)
+        //execlp("rm", "rm", tempfile, NULL);
+    wait(NULL);
     clock_gettime(CLOCK_REALTIME, &endtime);
     double delta = (endtime.tv_sec - starttime.tv_sec) + (endtime.tv_nsec - starttime.tv_nsec) / 1e9;
     char answer[100];
-    sprintf(answer, "%d time: %.4f\n", id, delta);
-    write(output, answer, strlen(answer));
+    sprintf(answer, "\n%d time: %.4f\n", id, delta);
+    int fd = open(outputfile, O_WRONLY | O_APPEND);
+    write(fd, answer, strlen(answer));
+    close(fd);
 
-    close(output);
-    close(pipefd);
-    dup2(saved_stdout, 1);                      //restaurar standard output (fanado do stack overflow)
-    close(saved_stdout);
+    arg = realloc(arg, sizeof(arg) - sizeof(char*));
+    return;
+
+
+
 }
 
 
 //It answer status. That's it, pretty self explanatory. answer_pipe is the answer pipe, queue is the queue, end_feito is where the ended things are feitas.
 void answer_status(int answer_pipe, QUEUE queue, char *end_feito){
-    char dir[strlen(end_feito)+2];
-    sprintf(dir, "%s/*", *end_feito);
+    printf("answering now\n");
+    char dir[strlen(end_feito)+10];
+    sprintf(dir, "%s/*", end_feito);
+    printf("dir is %s\n", dir);
     write(answer_pipe, "ANSWERING:\n", sizeof("ANSWERING:\n"));
     NODE *walker;
     walker = queue.first;
@@ -120,9 +156,26 @@ void answer_status(int answer_pipe, QUEUE queue, char *end_feito){
     write(answer_pipe, "\n\nDONE:\n", strlen("\n\nDONE:\n"));
     int saved_output = dup(1);
     dup2(answer_pipe, 1);
-    execlp("head", "head", "-n", "1", dir, NULL);   //bash para "dá-me a ultima linha destas coisas todas", que "convenientemente" está no formato perfeito *wink wink*
-    dup2(saved_output, 1);
+    //execlp("tail", "tail", "-n", "1", dir, NULL);   //bash para "dá-me a ultima linha destas coisas todas", que "convenientemente" está no formato perfeito *wink wink*
+    DIR *d;
+    struct dirent *directories;
+    d = opendir(end_feito);
+    if(d){
+        while((directories = readdir(d)) != NULL)
+        {
+            if(directories->d_name[0] != '.'){
+                    
+                sprintf(dir, "%s/%s", end_feito, directories->d_name);
+                if(fork() == 0)
+                    execlp("tail", "tail", "-n", "1", dir, NULL);
+                wait(NULL);
+            }
+        }
+    }
+    write(answer_pipe, "end_token", 10);
+    dup2(saved_output, 1); //1 = answer_pipe aqui
     close(saved_output);
+    close(answer_pipe);
 }
 
 void doasIsay(int childno, char* logpath,int notifyServ, int getTask){
@@ -139,10 +192,9 @@ void doasIsay(int childno, char* logpath,int notifyServ, int getTask){
         if(oldtask.fd > 0 && oldtask.fd != task.fd){
         switch(task.type){
             case simple:
-                printf("A ines é mazinha\n");
                 args = parse(task);
+                
                 execute_task(args, logpath, task.fd);
-                printf("\nhere\n");
                 free_function(args);
                 break;
             
@@ -159,6 +211,7 @@ void doasIsay(int childno, char* logpath,int notifyServ, int getTask){
                 sprintf(path, "temp/%d\0", task.fd);    	        //path é temp/[pid do cliente]
                 int pipe = open(path, O_WRONLY | O_CREAT | O_ASYNC);  //o pipe é criado pelo cliente então pode-se só abrir
                 answer_status(pipe, queue, logpath);
+                close(pipe);
                 free(path);
                 break;
             
@@ -197,11 +250,9 @@ int main(int argc, char **argv){
 
     for(childNo = 1; childNo <= maxtask; childNo++){
         babayaga = pipe(pipes[childNo]);
-        printf("babayaga = %d\n", babayaga);
         int pid = fork();
         if(pid == 0)
             doasIsay(childNo, logpath, pipes[0][1], pipes[childNo][0]);
-        printf("pipes: %d %d\n", pipes[childNo][0], pipes[childNo][1]);
     }
     
     QUEUE queue;        
@@ -220,7 +271,7 @@ int main(int argc, char **argv){
     while(1){   
         if(bytesread = read(fifo, &newtask, sizeof(TASKS)) != 0){       //certificar que ele lê alguma coisa (para os primeiros reads onde não há ninguem a escrever e devolve -1)
             //printf("%d\n", bytesread);                                //otherwise ele em teoria congela no read
-            printf("pipe to answer: %d\ntime: %d\ntask: %s\n", newtask.fd, newtask.time, newtask.argument);
+            printf("pipe to answer: %d\ntime: %d\ntask: %s\ntask type: %d\n", newtask.fd, newtask.time, newtask.argument, newtask.type);
             writeback(newtask.fd);                                      //função básica para responder ao cliente depois de receber task
 
             putInQueue(&queue, &newtask); //adiciona a nova tarefa à fila
@@ -243,6 +294,8 @@ int main(int argc, char **argv){
             // mandar para o ficheiro "em execução" e tirar do ficheiro "em espera"
             read(pipes[0][0], &childNo, sizeof(int));
             write(pipes[childNo][1], &newtask, sizeof(TASKS));
+            if(newtask.type == status)
+                write(pipes[childNo][1], &queue, sizeof(QUEUE));
         }
     }
 }

@@ -9,9 +9,24 @@
 #include "parse.h"
 
 void listenBack(int fd){            //função básica para o cliente ficar a ouvir a resposta do servidor
-    char answer[64];
+    write(1, "now listening for server answer...\n", 36);
+    char *answer = malloc(64);
     int bytesread = read(fd, answer, 64);
-    printf("%s\n", answer);
+    write(1, answer, bytesread);
+    bytesread = read(fd, answer, 64);
+    free(answer);
+}
+
+void listenstatus(int fd){
+    write(1, "listening for status response...\n", 34);
+    char answer[100];
+    int bytesread;
+    bytesread = read(fd, answer, 100);
+    while(strcmp(answer, "end_token") != 0)
+    {
+        write(1, &answer[0], bytesread);
+        bytesread = read(fd, answer, 100);
+    }
 }
 
 int main(int argc, char **argv){
@@ -19,12 +34,11 @@ int main(int argc, char **argv){
     umask(0);
 
     //Check if arguments are correct
-    if(argc != 1 && strcmp(argv[1], "status") == 0){
+    if(argc == 2 && strcmp(argv[1], "status") != 0){
         printf("arguments invalid");
         return -2;
     }
-
-    else if(argc != 5 || strcmp(argv[1], "execute") != 0 || argv[3][0] != '-'){
+    else if(argc != 2 && (argc != 5 || strcmp(argv[1], "execute") != 0 || argv[3][0] != '-')){
         printf("execute arguments not valid\n");
         //printf("argc = %d\ncommand = %s\nargv[3] = %c\n", argc, argv[1], argv[3][0]);
         return -2;
@@ -47,6 +61,7 @@ int main(int argc, char **argv){
     if(strcmp("status", argv[1]) == 0){             //status tem um tipo de task especifico
         task.type = status;                         //time = -1 para prioridade máxima
         task.time = -1;
+        strcpy(task.argument, "status");
     }
 
     else{
@@ -78,7 +93,9 @@ int main(int argc, char **argv){
 
     write(fdping, &task, sizeof(TASKS));            //escrever para o servidor
     close(fdping);                                  //fechar o pipe (less clutter)
-    int ap = open(answerpipe, O_RDONLY);            
+    int ap = open(answerpipe, O_RDONLY);
     listenBack(ap);
+    if(task.type == status)
+        listenstatus(ap);
     return 0;
 }
